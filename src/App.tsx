@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiShoppingBag, FiPackage, FiHome, FiTrendingUp, FiCheck, FiArrowRight, FiRefreshCw, FiShoppingCart, FiSearch, FiGrid, FiTag, FiX } from 'react-icons/fi';
+import { FiShoppingBag, FiPackage, FiTrendingUp, FiCheck, FiArrowRight, FiRefreshCw, FiShoppingCart, FiSearch, FiGrid, FiTag, FiX } from 'react-icons/fi';
 import Header from './components/Header';
 import ProductList from './components/ProductList';
 import Cart from './components/Cart';
@@ -43,8 +43,6 @@ function App() {
   // Estados para autenticação e modais
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   // Estado para termo de busca
   const [searchTerm, setSearchTerm] = useState<string>('');
   // Estado para categoria selecionada
@@ -58,16 +56,7 @@ function App() {
     
     // Busca produtos
     fetchProducts();
-    
-    // Verificar estado de autenticação no carregamento
-    checkAuthStatus();
   }, []);
-
-  // Verificar se o usuário está autenticado e se é admin
-  const checkAuthStatus = () => {
-    setIsAuthenticated(api.auth.isAuthenticated());
-    setIsAdmin(api.auth.isAdmin());
-  };
 
   const fetchProducts = async () => {
     try {
@@ -202,7 +191,6 @@ function App() {
 
   // Função para lidar com login bem-sucedido
   const handleLoginSuccess = () => {
-    checkAuthStatus();
     // Disparar evento para atualizar o cabeçalho
     window.dispatchEvent(new Event('storage'));
   };
@@ -210,8 +198,6 @@ function App() {
   // Função para fazer logout
   const handleLogout = () => {
     api.auth.logout();
-    setIsAuthenticated(false);
-    setIsAdmin(false);
     // Disparar evento para atualizar o cabeçalho
     window.dispatchEvent(new Event('storage'));
   };

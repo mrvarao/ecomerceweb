@@ -6,11 +6,9 @@ import {
   FiShoppingBag, 
   FiTrash2, 
   FiArrowRight, 
-  FiCreditCard, 
   FiShoppingCart 
 } from 'react-icons/fi';
 import { useEffect } from 'react';
-import type { Product } from '../api';
 
 interface CartItem {
   id: string;

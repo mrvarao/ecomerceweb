@@ -2,69 +2,57 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFilter, FiSearch, FiGrid, FiList, FiRefreshCw, FiSliders, FiChevronDown, FiXCircle, FiTag, FiDollarSign, FiShoppingBag, FiChevronRight } from 'react-icons/fi';
 import ProductCard from './ProductCard';
-import { api } from '../api';
 import type { Product } from '../api';
 
 interface ProductListProps {
+  products: Product[];
+  onAddToCart: (product: Product) => void;
   searchTerm?: string;
   selectedCategory?: string;
-  showOffers?: boolean;
+  showOnlyOffers?: boolean;
 }
 
-const ProductList = ({ searchTerm, selectedCategory, showOffers }: ProductListProps) => {
-  const [products, setProducts] = useState<Product[]>([]);
+const ProductList = ({ products: initialProducts, onAddToCart, searchTerm, selectedCategory, showOnlyOffers }: ProductListProps) => {
+  const [products, setProducts] = useState<Product[]>(initialProducts);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading] = useState(false);
+  const [error] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<'name_asc' | 'name_desc' | 'price_asc' | 'price_desc'>('name_asc');
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
-  const [showOnlyOnSale, setShowOnlyOnSale] = useState(showOffers || false);
+  const [showOnlyOnSale, setShowOnlyOnSale] = useState(showOnlyOffers || false);
   const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState(1000);
   const [filterSearchTerm, setFilterSearchTerm] = useState(searchTerm || '');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
-  // Carregar produtos da API
+  // Atualizar produtos quando as props mudarem
   useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const fetchedProducts = await api.products.getAll();
-        setProducts(fetchedProducts);
-        
-        // Encontrar o preço máximo para o filtro de intervalo de preço
-        const highestPrice = Math.max(...fetchedProducts.map(p => p.preco), 1000);
-        const defaultMaxPrice = Math.ceil(highestPrice / 100) * 100; // Arredondar para cima até a centena
-        setMaxPrice(defaultMaxPrice);
-        setPriceRange([0, defaultMaxPrice]);
-        
-        // Extrair categorias únicas e expandir todas por padrão
-        const categories = [...new Set(fetchedProducts.map(p => p.categoria))];
-        setUniqueCategories(categories);
-        
-        // Expandir todas as categorias por padrão
-        const allExpanded = categories.reduce((acc, category) => {
-          acc[category] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
-        setExpandedCategories(allExpanded);
-        
-        setIsLoading(false);
-      } catch (err) {
-        setIsLoading(false);
-        setError('Erro ao carregar os produtos. Por favor, tente novamente.');
-        console.error('Erro ao buscar produtos:', err);
-      }
-    };
+    setProducts(initialProducts);
+  }, [initialProducts]);
+
+  // Extrair categorias e configurar preço máximo
+  useEffect(() => {
+    // Encontrar o preço máximo para o filtro de intervalo de preço
+    const highestPrice = Math.max(...products.map(p => p.preco), 1000);
+    const defaultMaxPrice = Math.ceil(highestPrice / 100) * 100; // Arredondar para cima até a centena
+    setMaxPrice(defaultMaxPrice);
+    setPriceRange([0, defaultMaxPrice]);
     
-    fetchProducts();
-  }, []);
+    // Extrair categorias únicas e expandir todas por padrão
+    const categories = [...new Set(products.map(p => p.categoria))];
+    setUniqueCategories(categories);
+    
+    // Expandir todas as categorias por padrão
+    const allExpanded = categories.reduce((acc, category) => {
+      acc[category] = true;
+      return acc;
+    }, {} as Record<string, boolean>);
+    setExpandedCategories(allExpanded);
+  }, [products]);
 
   // Filtrar e ordenar produtos
   useEffect(() => {
@@ -87,7 +75,7 @@ const ProductList = ({ searchTerm, selectedCategory, showOffers }: ProductListPr
     }
     
     // Filtrar por ofertas
-    if (showOffers || showOnlyOnSale) {
+    if (showOnlyOffers || showOnlyOnSale) {
       result = result.filter(product => product.emOferta);
     }
     
@@ -123,16 +111,11 @@ const ProductList = ({ searchTerm, selectedCategory, showOffers }: ProductListPr
     }
     
     setFilteredProducts(result);
-  }, [products, searchTerm, filterSearchTerm, selectedCategory, showOffers, sortOption, priceRange, selectedCategories, showOnlyAvailable, showOnlyOnSale]);
+  }, [products, searchTerm, filterSearchTerm, selectedCategory, showOnlyOffers, sortOption, priceRange, selectedCategories, showOnlyAvailable, showOnlyOnSale]);
 
   // Toggle para o painel de filtros
   const toggleFilters = () => {
     setShowFilters(prev => !prev);
-  };
-  
-  // Alternar visualização entre grade e lista
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'grid' ? 'list' : 'grid');
   };
   
   // Manipular alterações na faixa de preço
@@ -167,20 +150,9 @@ const ProductList = ({ searchTerm, selectedCategory, showOffers }: ProductListPr
     setSelectedCategories([]);
     setPriceRange([0, maxPrice]);
     setShowOnlyAvailable(false);
-    setShowOnlyOnSale(showOffers || false);
+    setShowOnlyOnSale(showOnlyOffers || false);
     setSortOption('name_asc');
     setFilterSearchTerm('');
-  };
-
-  // Animações
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
   };
 
   // Função para agrupar produtos por categoria
@@ -306,10 +278,7 @@ const ProductList = ({ searchTerm, selectedCategory, showOffers }: ProductListPr
                         <ProductCard
                           key={product.id}
                           product={product}
-                          onAddToCart={() => {
-                            // Lógica para adicionar ao carrinho
-                            console.log(`Produto adicionado ao carrinho: ${product.nome}`);
-                          }}
+                          onAddToCart={() => onAddToCart(product)}
                         />
                       ))}
                     </div>
@@ -484,10 +453,7 @@ const ProductList = ({ searchTerm, selectedCategory, showOffers }: ProductListPr
                               </div>
                               
                               <motion.button 
-                                onClick={() => {
-                                  // Lógica de adicionar ao carrinho
-                                  console.log(`Produto adicionado ao carrinho: ${product.nome}`);
-                                }}
+                                onClick={() => onAddToCart(product)}
                                 className={`mt-2 sm:mt-0 ${
                                   product.quantidade > 0 
                                     ? 'btn-primary'
@@ -530,7 +496,7 @@ const ProductList = ({ searchTerm, selectedCategory, showOffers }: ProductListPr
               ? `Resultados para "${searchTerm}"` 
               : selectedCategory 
                 ? `Categoria: ${selectedCategory}` 
-                : showOffers 
+                : showOnlyOffers 
                   ? 'Ofertas Especiais' 
                   : 'Nossos Produtos'}
           </h2>
